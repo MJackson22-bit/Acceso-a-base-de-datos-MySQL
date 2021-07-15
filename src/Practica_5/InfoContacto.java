@@ -5,6 +5,15 @@
  */
 package Practica_5;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author Jackson
@@ -14,18 +23,15 @@ public class InfoContacto extends javax.swing.JDialog {
     /**
      * Creates new form InfoContacto
      */
-    private final CContacto contacto;
+    Conexion con;
+    ResultSet result;
+    PreparedStatement consulta;
+    Connection connection;
+
     public InfoContacto(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
         this.setLocationRelativeTo(parent);
-        contacto = JForm.listContacto.get(JForm.index);
-        this.lblNumero.setText("Número: " + contacto.getContacto());
-        this.lblNombreApellido.setText("Nombres: " + contacto.getNombreApellido());
-        this.lblCorreo.setText("Correo: " + contacto.getCorreo());
-        this.lblTelefono.setText("Teléfono: " + contacto.getTelefono());
-        this.lblDireccion.setText("Dirección: " + contacto.getDireccion());
-        this.lblGrupo.setText("Grupo: " + contacto.getGrupo());
     }
 
     /**
@@ -46,6 +52,11 @@ public class InfoContacto extends javax.swing.JDialog {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Información del contacto..");
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                formWindowOpened(evt);
+            }
+        });
 
         lblNumero.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
 
@@ -95,6 +106,29 @@ public class InfoContacto extends javax.swing.JDialog {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
+        con = new Conexion();
+        connection = con.conectar();
+        try {
+            consulta = connection.prepareStatement("SELECT * FROM tb_contacto WHERE numero = ?");
+            consulta.setString(1, JForm.index[1].trim());
+            result = consulta.executeQuery();
+            if (result.next()) {
+                this.lblNumero.setText("Número: " + result.getString("numero"));
+                this.lblNombreApellido.setText("Nombres: " + result.getString("nombre_apellido"));
+                this.lblCorreo.setText("Correo: " + result.getString("correo"));
+                this.lblTelefono.setText("Teléfono: " + result.getString("telefono"));
+                this.lblDireccion.setText("Dirección: " + result.getString("direccion"));
+                this.lblGrupo.setText("Grupo: " + result.getString("grupo"));
+            }else{
+                JOptionPane.showMessageDialog(this, "No encontrado");
+                this.setVisible(false);
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(InfoContacto.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_formWindowOpened
+
     /**
      * @param args the command line arguments
      */
@@ -123,17 +157,15 @@ public class InfoContacto extends javax.swing.JDialog {
         //</editor-fold>
 
         /* Create and display the dialog */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                InfoContacto dialog = new InfoContacto(new javax.swing.JFrame(), true);
-                dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-                    @Override
-                    public void windowClosing(java.awt.event.WindowEvent e) {
-                        System.exit(0);
-                    }
-                });
-                dialog.setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            InfoContacto dialog = new InfoContacto(new javax.swing.JFrame(), true);
+            dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
+                    System.exit(0);
+                }
+            });
+            dialog.setVisible(true);
         });
     }
 

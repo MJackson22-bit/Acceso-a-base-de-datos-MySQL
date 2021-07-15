@@ -5,7 +5,15 @@
  */
 package Practica_5;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
 /**
@@ -19,6 +27,10 @@ public class AgregarContacto extends javax.swing.JDialog {
      */
     public static ArrayList<CContacto> listContactoTemporal;
     private CContacto contacto;
+    ResultSet result;
+    PreparedStatement consulta;
+    Conexion conectar;
+
     public AgregarContacto(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
@@ -181,11 +193,12 @@ public class AgregarContacto extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void txtNumeroActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtNumeroActionPerformed
-       
+
     }//GEN-LAST:event_txtNumeroActionPerformed
 
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
-        if(txtNumero.getText().equals("") || txtNombreApellido.getText().equals("") || txtCorreo.getText().equals("") || txtDireccion.getText().equals("") || txtGrupo.getText().equals("") || txtTelefono.getText().equals("")){
+
+        if (txtNumero.getText().equals("") || txtNombreApellido.getText().equals("") || txtCorreo.getText().equals("") || txtDireccion.getText().equals("") || txtGrupo.getText().equals("") || txtTelefono.getText().equals("")) {
             JOptionPane.showMessageDialog(this, "Debe llenar todos los campos", "Añadir Contacto", JOptionPane.WARNING_MESSAGE);
         } else {
             contacto = new CContacto();
@@ -196,7 +209,7 @@ public class AgregarContacto extends javax.swing.JDialog {
             contacto.setGrupo(txtGrupo.getText());
             contacto.setTelefono(txtTelefono.getText());
             listContactoTemporal.add(contacto);
-            JOptionPane.showMessageDialog(null, "Contacto Guardado", "Guardado", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Contacto Guardado Temporalmente", "Guardado", JOptionPane.INFORMATION_MESSAGE);
             txtNumero.setText("");
             txtNombreApellido.setText("");
             txtCorreo.setText("");
@@ -221,17 +234,50 @@ public class AgregarContacto extends javax.swing.JDialog {
     }//GEN-LAST:event_btnCancelarActionPerformed
 
     private void btnAceptarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAceptarActionPerformed
-        if(listContactoTemporal.isEmpty()){
+        Connection con;
+
+        if (listContactoTemporal.isEmpty()) {
             this.setVisible(false);
-        }else{
-            listContactoTemporal.forEach((contact) -> {
-                JForm.listContacto.add(contact);
-            });
+        } else {
+            conectar = new Conexion();
+            con = conectar.conectar();
+            try {
+                consulta = con.prepareStatement("INSERT INTO tb_contacto (numero,nombre_apellido,correo,telefono,direccion,grupo) VALUES (?,?,?,?,?,?)");
+                listContactoTemporal.forEach((CContacto contact) -> {
+                    try {
+                        consulta.setString(1, contact.getContacto());
+                        consulta.setString(2, contact.getNombreApellido());
+                        consulta.setString(3, contact.getCorreo());
+                        consulta.setString(4, contact.getTelefono());
+                        consulta.setString(5, contact.getDireccion());
+                        consulta.setString(6, contact.getGrupo());
+                        try {
+                            int res = consulta.executeUpdate();
+                            if (res > 0) {
+                                System.out.println("Ingresado");
+                                
+                                JForm.bandera = true;
+                            } else {
+                                System.err.println("Error");
+                            }
+                        } catch (SQLIntegrityConstraintViolationException e) {
+                            JOptionPane.showMessageDialog(null, "El contacto con número " + contact.getContacto() + " ya existe y no será guardado");
+                            
+                        }
+
+                    } catch (SQLException ex) {
+                        Logger.getLogger(AgregarContacto.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });
+                //JOptionPane.showMessageDialog(null, "Datos ingresados a la Base de Datos");
+                con.close();
+            } catch (SQLException ex) {
+                Logger.getLogger(AgregarContacto.class.getName()).log(Level.SEVERE, null, ex);
+            }
             listContactoTemporal.clear();
-            JOptionPane.showMessageDialog(null, "Los cambios han sido guardados", "Cambios", JOptionPane.INFORMATION_MESSAGE);
             this.setVisible(false);
-            JForm.bandera = true;
         }
+
     }//GEN-LAST:event_btnAceptarActionPerformed
 
     /**

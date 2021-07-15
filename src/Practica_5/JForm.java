@@ -1,6 +1,13 @@
 package Practica_5;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 
@@ -9,7 +16,6 @@ import javax.swing.JOptionPane;
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 /**
  *
  * @author Jackson
@@ -19,16 +25,20 @@ public class JForm extends javax.swing.JFrame {
     /**
      * Creates new form JForm
      */
-    public static ArrayList<CContacto> listContacto = new ArrayList<CContacto>();
-    private DefaultListModel listModel = new DefaultListModel(); // For list A
-    private CContacto contacto;
-    public static int index;
+    Conexion con;
+    ResultSet result;
+    Statement consulta;
+    PreparedStatement consultaDelete;
+    Connection connection;
+    private final DefaultListModel listModel = new DefaultListModel();
+    public static String[] index;
     public static boolean bandera = false;
+
     public JForm() {
         initComponents();
         this.setResizable(false);
         this.setLocationRelativeTo(null);
-        
+
     }
 
     /**
@@ -45,6 +55,7 @@ public class JForm extends javax.swing.JFrame {
         btnActaulizar = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jList1 = new javax.swing.JList<>();
+        btnEliminar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Agenda de Contactos");
@@ -72,26 +83,36 @@ public class JForm extends javax.swing.JFrame {
         });
         jScrollPane1.setViewportView(jList1);
 
+        btnEliminar.setText("Eliminar");
+        btnEliminar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnEliminarActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jScrollPane1)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addComponent(btnNuevo)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnEliminar)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnActaulizar)
                 .addGap(0, 0, Short.MAX_VALUE))
-            .addComponent(jScrollPane1)
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(6, 6, 6)
+                .addGap(5, 5, 5)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnNuevo)
-                    .addComponent(btnActaulizar))
+                    .addComponent(btnActaulizar)
+                    .addComponent(btnEliminar))
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 286, Short.MAX_VALUE))
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 286, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -119,29 +140,55 @@ public class JForm extends javax.swing.JFrame {
     }//GEN-LAST:event_btnNuevoActionPerformed
 
     private void btnActaulizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActaulizarActionPerformed
-        if(bandera == true){
-            listModel.clear();
-            for (int i = 0; i < listContacto.size(); i++) {
-                contacto = listContacto.get(i);
-                listModel.addElement(contacto.getNombreApellido());
+
+        listModel.clear();
+        con = new Conexion();
+        connection = con.conectar();
+        try {
+            consulta = connection.createStatement();
+            result = consulta.executeQuery("SELECT * FROM tb_contacto");
+            while (result.next()) {
+                listModel.addElement(result.getString("nombre_apellido") + "\t - " + result.getString("numero"));
             }
             jList1.setModel(listModel);
             bandera = false;
-        }else{
-            
+        } catch (SQLException ex) {
+            Logger.getLogger(JForm.class.getName()).log(Level.SEVERE, null, ex);
         }
-       
     }//GEN-LAST:event_btnActaulizarActionPerformed
 
     private void jList1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jList1MouseClicked
-        if(jList1.isSelectionEmpty()){
+        if (jList1.isSelectionEmpty()) {
             JOptionPane.showMessageDialog(this, "No hay elementos en la lista", "Advertencia", JOptionPane.WARNING_MESSAGE);
-        }else{
-            index = jList1.getSelectedIndex();
+        } else {
+            index = jList1.getSelectedValue().split("-");
+            //JOptionPane.showMessageDialog(this, index[1]);
             new InfoContacto(this, true).setVisible(true);
         }
-        
+
     }//GEN-LAST:event_jList1MouseClicked
+
+    private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarActionPerformed
+        if (jList1.isSelectionEmpty()) {
+            JOptionPane.showMessageDialog(this, "No ha selecionado ningún elemento", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        } else {
+            index = jList1.getSelectedValue().split("-");
+            con = new Conexion();
+            connection = con.conectar();
+            try {
+                consultaDelete = connection.prepareStatement("DELETE FROM tb_contacto WHERE numero = ?");
+                consultaDelete.setString(1, index[1].trim());
+                int rest = consultaDelete.executeUpdate();
+                if (rest > 0) {
+                    JOptionPane.showMessageDialog(this, "Contacto eliminado");
+                } else {
+                    JOptionPane.showMessageDialog(this, "No encontrado");
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(InfoContacto.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }//GEN-LAST:event_btnEliminarActionPerformed
 
     /**
      * @param args the command line arguments
@@ -178,6 +225,7 @@ public class JForm extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnActaulizar;
+    private javax.swing.JButton btnEliminar;
     private javax.swing.JButton btnNuevo;
     private javax.swing.JList<String> jList1;
     private javax.swing.JPanel jPanel1;
