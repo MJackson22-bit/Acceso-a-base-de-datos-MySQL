@@ -23,7 +23,7 @@ public class Conexion{
     public Connection conectar(){
         try{
             Class.forName("com.mysql.cj.jdbc.Driver");
-            connection = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/bd_contactos", "root", "elregreso2.0");
+            connection = (Connection) DriverManager.getConnection("jdbc:mysql://localhost:3306/bd_contactos", "root", "passwd here");
             System.out.println("Conexion exitosa");
             return connection;
         }catch(ClassNotFoundException | SQLException e){
